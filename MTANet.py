@@ -1,5 +1,4 @@
 # This code is adapted from the example on https://github.com/Knight825/models-pytorch/blob/master/CrossStagePartial/csp_densenet.py
-
 import torch
 from torchvision.models.densenet import _DenseBlock,_DenseLayer,_Transition
 import torch.nn as nn
@@ -42,7 +41,6 @@ class _Csp_DenseBlock(torch.nn.Module):
             dense = self.transition(dense)
         return torch.cat([x[:,:self.csp_num_features1,...],dense],1)
 
-
 class MTANet(torch.nn.Module):
     def __init__(self, in_channels=78, num_classes=1, count_list=[8, 12, 12, 12, 8, 2, 2, 10, 2, 5, 5], growth_rate=32, blocks=(6, 12, 24, 16),
                  num_init_features=64,  transitionBlock = True, transitionDense = True,bn_size=4, drop_rate=0, meta_size = 11,memory_efficient=False):
@@ -53,9 +51,7 @@ class MTANet(torch.nn.Module):
             self.growth_down_rate = 2 if transitionBlock else 1
             self.count_list = count_list
             self.head_features_list = []
-
             for count_i,count in enumerate(count_list):
-
                 num_features = num_init_features
                 features = torch.nn.Sequential(OrderedDict([
                     ('conv0'+str(count_i+1), torch.nn.Conv2d(count, num_init_features, kernel_size=7, stride=2,
@@ -101,13 +97,10 @@ class MTANet(torch.nn.Module):
                     trans = _Transition(num_input_features=num_features,num_output_features=num_features//2)
                     self.features.add_module('transition%d'%(i+1),trans)
                     num_features = num_features//2
-
             self.features.add_module('norm5', torch.nn.BatchNorm2d(num_features))
-
             self.relu = nn.ReLU(inplace=True)
             self.adaptive_avg_pool2d = nn.AdaptiveAvgPool2d((1,1))
             self.classifier = nn.Linear(num_features+self.meta_size, num_classes)
-
             for m in self.modules():
                 if isinstance(m, torch.nn.Conv2d):
                     torch.nn.init.kaiming_normal_(m.weight)
@@ -119,6 +112,7 @@ class MTANet(torch.nn.Module):
             self.head_features_list = nn.ModuleList(self.head_features_list)
         else:
             self.classifier = nn.Linear(self.meta_size, num_classes)
+            
     def forward(self, x, meta):
         if len(self.count_list)!=0:
             total_count=0
@@ -134,7 +128,6 @@ class MTANet(torch.nn.Module):
             features = self.features(x)
             out =  self.relu(features)
             out = self.adaptive_avg_pool2d(out)
-
             out = out.view(out.size(0), -1)
             if self.meta_size!=0:
                 out = torch.cat([out,meta],dim = 1)
